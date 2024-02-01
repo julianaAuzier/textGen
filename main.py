@@ -5,7 +5,6 @@ from keras.callbacks import EarlyStopping
 from keras.models import Sequential
 import keras.utils as ku
 
-# set seeds for reproducability
 from tensorflow import random
 from numpy.random import seed
 random.set_seed(2)
@@ -30,17 +29,14 @@ for filename in os.listdir(curr_dir):
 all_headlines = [h for h in all_headlines if h != "Unknown"]
 print(len(all_headlines))
 
-#--- remoção da pontuação e de todas as palavras em minúsculo
 def clean_text(txt):
-    txt = "".join(v for v in txt if v not in string.punctuation).lower()
+    txt = "".join(v for v in txt ).lower() #if v not in string.punctuation
     txt = txt.encode("utf8").decode("ascii",'ignore')
     return txt
 
 corpus = [clean_text(x) for x in all_headlines]
 print(corpus[:10])
 
-#--- gerar sequências de tokens de N-gramas
-# n-grama é uma sequência contígua de n itens de uma determinada amostra de texto ou fala
 tokenizer = Tokenizer()
 def get_sequence_of_tokens(corpus):
     ## tokenização
@@ -59,7 +55,6 @@ def get_sequence_of_tokens(corpus):
 
 inp_sequences, total_words = get_sequence_of_tokens(corpus)
 
-#antes de treinar o modelo de geração de texto é preciso preencher as sequências e igualar seus comprimentos
 def generate_padded_sequences(input_sequences):
     max_sequence_len = max([len(x) for x in input_sequences])
     input_sequences = np.array(pad_sequences(input_sequences, maxlen=max_sequence_len, padding='pre'))
@@ -71,7 +66,6 @@ def generate_padded_sequences(input_sequences):
 
 predictors, label, max_sequence_len = generate_padded_sequences(inp_sequences)
 
-# --- dl
 def create_model(max_sequence_len, total_words):
     input_len = max_sequence_len - 1
     model = Sequential()
@@ -90,19 +84,19 @@ def create_model(max_sequence_len, total_words):
 
     return model
 
-
 model = create_model(max_sequence_len, total_words)
 #print(model.summary())
 
 #-- train
-model.fit(predictors, label, epochs=100, verbose=5)
+model.fit(predictors, label, epochs=50, verbose=5)
+print(predictors.shape, label.shape)
 
 #test
 def generate_text(seed_text, next_words, model, max_sequence_len):
     for _ in range(next_words):
         token_list = tokenizer.texts_to_sequences([seed_text])[0]
         token_list = pad_sequences([token_list], maxlen=max_sequence_len - 1, padding='pre')
-        predicted = model.predict_classes(token_list, verbose=0)
+        predicted = np.argmax(model.predict(token_list, verbose=0))
 
         output_word = ""
         for word, index in tokenizer.word_index.items():
@@ -114,8 +108,8 @@ def generate_text(seed_text, next_words, model, max_sequence_len):
 
 
 print(generate_text("united states", 5, model, max_sequence_len))
-print(generate_text("preident trump", 4, model, max_sequence_len))
-print(generate_text("donald trump", 4, model, max_sequence_len))
+print(generate_text("president trump", 4, model, max_sequence_len))
+print(generate_text("donald trump", 6, model, max_sequence_len))
 print(generate_text("india and china", 4, model, max_sequence_len))
 print(generate_text("new york", 4, model, max_sequence_len))
 print(generate_text("science and technology", 5, model, max_sequence_len))
