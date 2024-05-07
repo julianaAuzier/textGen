@@ -4,7 +4,6 @@ from keras.preprocessing.text import Tokenizer
 from keras.callbacks import EarlyStopping
 from keras.models import Sequential
 import keras.utils as ku
-
 from tensorflow import random
 from numpy.random import seed
 random.set_seed(2)
@@ -27,7 +26,6 @@ for filename in os.listdir(curr_dir):
         break
 
 all_headlines = [h for h in all_headlines if h != "Unknown"]
-print(len(all_headlines))
 
 def clean_text(txt):
     txt = "".join(v for v in txt ).lower() #if v not in string.punctuation
@@ -42,8 +40,8 @@ def get_sequence_of_tokens(corpus):
     ## tokenização
     tokenizer.fit_on_texts(corpus)
     total_words = len(tokenizer.word_index) + 1
+    print(total_words)
 
-    ## converte dados para sequencia de tokens
     input_sequences = []
     for line in corpus:
         token_list = tokenizer.texts_to_sequences([line])[0]
@@ -51,7 +49,6 @@ def get_sequence_of_tokens(corpus):
             n_gram_sequence = token_list[:i + 1]
             input_sequences.append(n_gram_sequence)
     return input_sequences, total_words
-
 
 inp_sequences, total_words = get_sequence_of_tokens(corpus)
 
@@ -63,32 +60,26 @@ def generate_padded_sequences(input_sequences):
     label = ku.to_categorical(label, num_classes=total_words)
     return predictors, label, max_sequence_len # x, y, max_len
 
-
 predictors, label, max_sequence_len = generate_padded_sequences(inp_sequences)
 
 def create_model(max_sequence_len, total_words):
     input_len = max_sequence_len - 1
     model = Sequential()
-
-    # Add Input Embedding Layer
     model.add(Embedding(total_words, 10, input_length=input_len))
-
-    # Add Hidden Layer 1 - LSTM Layer
-    model.add(LSTM(100))
-    model.add(Dropout(0.1))
-
-    # Add Output Layer
+    model.add(LSTM(100,))
+    model.add(Dropout(0.2))
+    model.add(Dense(total_words*1.5, activation='tanh'))
     model.add(Dense(total_words, activation='softmax'))
 
-    model.compile(loss='categorical_crossentropy', optimizer='adam')
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics='accuracy')
 
     return model
 
 model = create_model(max_sequence_len, total_words)
 #print(model.summary())
 
-#-- train
-model.fit(predictors, label, epochs=50, verbose=5)
+#train
+model.fit(predictors, label, epochs=50)
 print(predictors.shape, label.shape)
 
 #test
@@ -107,9 +98,9 @@ def generate_text(seed_text, next_words, model, max_sequence_len):
     return seed_text.title()
 
 
-print(generate_text("united states", 5, model, max_sequence_len))
-print(generate_text("president trump", 4, model, max_sequence_len))
-print(generate_text("donald trump", 6, model, max_sequence_len))
-print(generate_text("india and china", 4, model, max_sequence_len))
-print(generate_text("new york", 4, model, max_sequence_len))
-print(generate_text("science and technology", 5, model, max_sequence_len))
+print(generate_text("united states", 15, model, max_sequence_len))
+print(generate_text("president trump", 15, model, max_sequence_len))
+print(generate_text("donald trump", 15, model, max_sequence_len))
+print(generate_text("india and china", 15, model, max_sequence_len))
+print(generate_text("new york", 15, model, max_sequence_len))
+print(generate_text("science and technology", 15, model, max_sequence_len))
